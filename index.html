@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <title>Dải Ngân Hà 3D</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GTY3RQNXTE"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GTY3RQNXTE');
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            overflow: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            background-color: #000;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+            font-family: 'Orbitron', 'Courier New', monospace;
+            perspective: 1500px;
+            cursor: grab;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body:active {
+            cursor: grabbing;
+        }
+
+        .galaxy-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg) scale(1);
+            will-change: transform;
+        }
+
+        .text-particle {
+            position: absolute;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            text-shadow:
+                0 0 10px currentColor,
+                0 0 20px currentColor,
+                0 0 30px currentColor,
+                2px 2px 4px rgba(0,0,0,0.8);
+            transform-style: preserve-3d;
+            pointer-events: none;
+            letter-spacing: 1px;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+        }
+
+        .text-particle.love {
+            color: #ff6b9d; /* Sẽ được ghi đè bởi JS nếu có trong localGalaxyData.colors */
+            text-shadow:
+                0 0 15px currentColor,
+                0 0 25px currentColor,
+                0 0 35px currentColor,
+                2px 2px 6px rgba(0,0,0,0.9);
+        }
+
+        .text-particle.birthday {
+            color: #4ecdc4; /* Sẽ được ghi đè */
+            text-shadow:
+                0 0 15px currentColor,
+                0 0 25px currentColor,
+                0 0 35px currentColor,
+                2px 2px 6px rgba(0,0,0,0.9);
+        }
+
+        .text-particle.date {
+            color: #c534ed; /* Sẽ được ghi đè */
+            text-shadow:
+                0 0 20px currentColor,
+                0 0 30px currentColor,
+                0 0 40px currentColor,
+                2px 2px 6px rgba(0,0,0,0.9);
+        }
+
+        .text-particle.special {
+            color: #f34bce; /* Sẽ được ghi đè */
+            text-shadow:
+                0 0 15px currentColor,
+                0 0 25px currentColor,
+                0 0 35px currentColor,
+                2px 2px 6px rgba(0,0,0,0.9);
+        }
+
+        .text-particle.heart {
+            color: #ff69b4; /* Sẽ được ghi đè */
+            text-shadow:
+                0 0 20px currentColor,
+                0 0 30px currentColor,
+                0 0 40px currentColor,
+                3px 3px 8px rgba(0,0,0,0.9);
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px white;
+            animation: twinkle 3s infinite;
+            will-change: opacity;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4ecdc4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-screen { 
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            display: none; /* Ẩn ban đầu */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-home {
+            margin-top: 2rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(45deg, #ff6b9d, #4ecdc4);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .back-home:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(255, 107, 157, 0.4);
+        }
+
+        /* Mobile specific styles */
+        @media (max-width: 768px) {
+            body { perspective: 1000px; }
+            .galaxy-container { perspective: 1000px; }
+            .text-particle { font-size: 12px; letter-spacing: 0.5px; }
+            .text-particle.heart { font-size: 16px; }
+            .star { width: 1.5px; height: 1.5px; }
+        }
+
+        @media (max-width: 480px) {
+            .text-particle { font-size: 10px; letter-spacing: 0.3px; }
+            .text-particle.heart { font-size: 14px; }
+            .star { width: 1px; height: 1px; }
+        }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            .text-particle { font-size: 10px; }
+            .text-particle.heart { font-size: 12px; }
+        }
+        .image-particle {
+            position: absolute;
+            pointer-events: none;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            z-index: 2;
+            border-radius: 15px; /* Điều chỉnh bo góc cho ảnh */
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <h2>Những điều tốt đẹp đều cần thời gian...</h2>
+        <p>Vui lòng đợi trong giây lát</p>
+    </div>
+
+    <div class="error-screen" id="errorScreen">
+        <div class="error-icon">😢</div>
+        <h2>Oops! Có lỗi xảy ra</h2>
+        <p>Không thể tải dữ liệu cục bộ. Vui lòng kiểm tra lại cấu hình.</p>
+        <a href="index.html" class="back-home">🏠 Tải lại</a>
+    </div>
+
+    <div class="galaxy-container" id="galaxy">
+    </div>
+
+    <audio id="galaxyAudio" controls style="display:none"></audio>
+
+    <script type="module">
+        // ⭐⭐⭐ PHẦN DỮ LIỆU CÁ NHÂN HÓA CỦA BẠN ⭐⭐⭐
+        const localGalaxyData = {
+            messages: [
+                "Chúc em luôn cười thật tươi nhé! Anh thích nhìn em cười nhất.❤️️ ",
+                "Yêu em rất nhiều! ❤️",
+                "Mãi yêu 💖",
+                "Luôn vui vẻ nhé! ", // Ngày tháng đặc biệt
+                "Cảm ơn vì đã đến bên anh ❤️",
+                "Mãi yêu 💖" ,
+                "Luôn vui vẻ nhé!",
+                "Mãi yêu 🥰"
+                // Thêm các tin nhắn khác của bạn vào đây
+            ],
+            icons: ["♥", "💖", "❤️", "💕", "✨", "🌟", "🎉", "🎂", "💍", "🥰"], // Thêm/thay đổi icon
+            colors: { // Bạn có thể tùy chỉnh các màu này
+                love: "#ff3366",     // Màu cho tin nhắn tình yêu
+                birthday: "#ffcc00", // Màu cho tin nhắn sinh nhật
+                date: "#66ccff",     // Màu cho tin nhắn ngày tháng
+                special: "#9933ff",  // Màu cho tin nhắn đặc biệt khác
+                heart: "#ff69b4"     // Màu cho các icon trái tim/biểu tượng chính
+            },
+            images: [
+                  // Đường dẫn tới file ảnh trong thư mục /images/
+                "images/z6661938813112_0d34cba33f32e690ebad0b223c2d615b.jpg",
+                "images/z6661938816045_e39d58b6b23eda573d6472d769801202.jpg",
+                "images/z6661938827370_5b10ed2586d02ccb610cc765c278195a.jpg",
+             "images/z6661938837868_7c348dd044e2e13b252225beed95ed78.jpg",
+            "images/z6661938846883_307984f30df90bbd8df7ed8f0f2829cf.jpg",
+"images/z6661938860786_b6fe62771345b259d3f8455a3b587fa1.jpg",
+"images/z6661938813112_0d34cba33f32e690ebad0b223c2d615b.jpg",
+                "images/z6661938816045_e39d58b6b23eda573d6472d769801202.jpg",
+                "images/z6661938827370_5b10ed2586d02ccb610cc765c278195a.jpg",
+             "images/z6661938837868_7c348dd044e2e13b252225beed95ed78.jpg",
+            "images/z6661938846883_307984f30df90bbd8df7ed8f0f2829cf.jpg",
+"images/z6661938860786_b6fe62771345b259d3f8455a3b587fa1.jpg",
+                // "images/ten_file_khac.gif" // Thêm ảnh khác nếu muốn
+            ],
+            song: "audio/ssstik.io_1748717519464.mp4" // Đường dẫn tới file nhạc trong thư mục /audio/
+                                                 // Ví dụ: "audio/your-song-name.mp3"
+                                                 // QUAN TRỌNG: Đảm bảo file này tồn tại và đúng đường dẫn.
+                                                 // Nếu vẫn lỗi, thử đổi sang file .mp3
+        };
+        // ⭐⭐⭐ KẾT THÚC PHẦN DỮ LIỆU CÁ NHÂN HÓA ⭐⭐⭐
+
+
+        const loadingScreen = document.getElementById('loadingScreen');
+        const errorScreen = document.getElementById('errorScreen');
+        const galaxy = document.getElementById('galaxy');
+
+        let galaxyData = null; 
+        let rotationX = 0;
+        let rotationY = 0;
+        let scale = 1;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        const activeParticles = new Set();
+
+        const isMobile = window.innerWidth <= 768;
+        const isSmallMobile = window.innerWidth <= 480;
+        const maxParticles = isSmallMobile ? 150 : isMobile ? 200 : 300;
+        const particleInterval = isMobile ? 100 : 120;
+        const starCount = isSmallMobile ? 250 : isMobile ? 350 : 500;
+
+        let particleSpeedMultiplier = 1.3;
+
+        document.addEventListener('mousedown', () => { particleSpeedMultiplier = 1.7; });
+        document.addEventListener('mouseup', () => { particleSpeedMultiplier = 1; });
+        document.addEventListener('touchstart', (e) => { if (e.touches.length === 1) particleSpeedMultiplier = 1.7; });
+        document.addEventListener('touchend', () => { particleSpeedMultiplier = 1; });
+
+        document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+        document.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+        document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+        document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+        document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+
+        function loadGalaxyData() {
+            galaxyData = localGalaxyData; 
+
+            if (!galaxyData || !galaxyData.messages || !galaxyData.icons || !galaxyData.colors) {
+                console.error('Dữ liệu localGalaxyData không hợp lệ hoặc bị thiếu.');
+                showError(); 
+                return;
+            }
+            initializeGalaxy();
+        }
+
+        function showError() {
+            loadingScreen.style.display = 'none';
+            errorScreen.style.display = 'flex';
+        }
+
+        function initializeGalaxy() {
+            loadingScreen.style.display = 'none';
+
+            const style = document.createElement('style');
+            style.textContent = `
+                .text-particle.love { color: ${galaxyData.colors.love || '#ff6b9d'}; text-shadow: 0 0 15px ${galaxyData.colors.love || '#ff6b9d'}, 0 0 25px ${galaxyData.colors.love || '#ff6b9d'}, 0 0 35px ${galaxyData.colors.love || '#ff6b9d'}, 2px 2px 6px rgba(0,0,0,0.9); }
+                .text-particle.birthday { color: ${galaxyData.colors.birthday || '#4ecdc4'}; text-shadow: 0 0 15px ${galaxyData.colors.birthday || '#4ecdc4'}, 0 0 25px ${galaxyData.colors.birthday || '#4ecdc4'}, 0 0 35px ${galaxyData.colors.birthday || '#4ecdc4'}, 2px 2px 6px rgba(0,0,0,0.9); }
+                .text-particle.date { color: ${galaxyData.colors.date || '#ff69b4'}; text-shadow: 0 0 20px ${galaxyData.colors.date || '#ff69b4'}, 0 0 30px ${galaxyData.colors.date || '#ff69b4'}, 0 0 40px ${galaxyData.colors.date || '#ff69b4'}, 2px 2px 6px rgba(0,0,0,0.9); }
+                .text-particle.special { color: ${galaxyData.colors.special || '#ff6b9d'}; text-shadow: 0 0 15px ${galaxyData.colors.special || '#ff6b9d'}, 0 0 25px ${galaxyData.colors.special || '#ff6b9d'}, 0 0 35px ${galaxyData.colors.special || '#ff6b9d'}, 2px 2px 6px rgba(0,0,0,0.9); }
+                .text-particle.heart { color: ${galaxyData.colors.heart || '#ff69b4'}; text-shadow: 0 0 20px ${galaxyData.colors.heart || '#ff69b4'}, 0 0 30px ${galaxyData.colors.heart || '#ff69b4'}, 0 0 40px ${galaxyData.colors.heart || '#ff69b4'}, 3px 3px 8px rgba(0,0,0,0.9); }
+            `;
+            document.head.appendChild(style);
+
+            // === PHẦN PHÁT NHẠC ĐÃ SỬA ===
+            if (galaxyData.song) {
+                const audio = document.getElementById('galaxyAudio');
+                audio.src = galaxyData.song; // Đường dẫn cục bộ trực tiếp từ localGalaxyData
+                // audio.loop = true; // Bỏ comment dòng này nếu bạn muốn nhạc tự động lặp lại
+
+                const startMusicPlayback = () => {
+                    // Kiểm tra xem audio đã sẵn sàng để phát chưa
+                    // (readyState >= 2 nghĩa là HAVE_CURRENT_DATA - đủ dữ liệu cho vị trí hiện tại)
+                    if (audio.readyState >= 2) {
+                        audio.play()
+                            .then(() => {
+                                console.log("Nhạc nền đã được kích hoạt và đang phát.");
+                            })
+                            .catch(error => {
+                                console.warn("Lỗi khi phát nhạc:", error);
+                                // Tùy chọn: bạn có thể hiển thị một thông báo cho người dùng ở đây
+                                // Ví dụ: alert("Không thể phát nhạc. Vui lòng thử lại hoặc kiểm tra cài đặt trình duyệt của bạn.");
+                            });
+                    } else {
+                        // Nếu audio chưa sẵn sàng, lắng nghe sự kiện 'canplaythrough'
+                        // sự kiện này được kích hoạt khi trình duyệt ước tính có thể phát hết file nhạc mà không cần dừng để tải thêm
+                        console.warn("Audio chưa sẵn sàng, chờ sự kiện 'canplaythrough'.");
+                        audio.addEventListener('canplaythrough', () => {
+                            audio.play()
+                                .then(() => {
+                                    console.log("Nhạc nền đã phát sau khi 'canplaythrough'.");
+                                })
+                                .catch(error => {
+                                    console.warn("Lỗi khi phát nhạc sau 'canplaythrough':", error);
+                                });
+                        }, { once: true }); // Chỉ lắng nghe sự kiện này một lần
+                    }
+                };
+                
+                // Listener này sẽ chỉ kích hoạt MỘT LẦN cho tương tác (click hoặc touch) đầu tiên của người dùng trên trang.
+                document.body.addEventListener('click', startMusicPlayback, { once: true });
+                document.body.addEventListener('touchstart', startMusicPlayback, { once: true }); // Áp dụng cho cả thiết bị cảm ứng
+            }
+            // === KẾT THÚC PHẦN PHÁT NHẠC ĐÃ SỬA ===
+
+
+            createStars();
+            startParticleAnimation();
+
+            setTimeout(() => {
+                const footer = document.getElementById('copyrightFooter');
+                if (footer) footer.style.display = 'none';
+            }, 6000); 
+        }
+
+        function getRandomMessage() {
+            if (!galaxyData.messages || galaxyData.messages.length === 0) return "Hello! ✨";
+            return galaxyData.messages[Math.floor(Math.random() * galaxyData.messages.length)];
+        }
+
+        function getRandomIcon() {
+            if (!galaxyData.icons || galaxyData.icons.length === 0) return "💖";
+            return galaxyData.icons[Math.floor(Math.random() * galaxyData.icons.length)];
+        }
+
+        function getMessageClass(message) {
+            const lowerMessage = message.toLowerCase();
+            if (lowerMessage.includes("love") || lowerMessage.includes("yêu") || lowerMessage.includes("tình") || lowerMessage.includes("kỷ niệm") || lowerMessage.includes("anniversary")) {
+                return "love";
+            } else if (lowerMessage.includes("birthday") || lowerMessage.includes("sinh nhật") || lowerMessage.includes("chúc mừng")) {
+                return "birthday";
+            } else if (/\d/.test(message) && message.includes("/")) { 
+                return "date";
+            } else {
+                return "special";
+            }
+        }
+
+        function createTextParticle() {
+            if (activeParticles.size >= maxParticles) return;
+
+            const isIcon = Math.random() > 0.7;
+            const element = document.createElement('div');
+
+            if (isIcon) {
+                element.className = 'text-particle heart';
+                element.textContent = getRandomIcon();
+            } else {
+                const message = getRandomMessage();
+                element.className = `text-particle ${getMessageClass(message)}`;
+                element.textContent = message;
+            }
+
+            const xPos = Math.random() * 100;
+            const zPos = (Math.random() - 0.5) * (isMobile ? 300 : 500);
+            const animationDuration = Math.random() * 2 + (isMobile ? 3 : 3);
+
+            element.style.left = xPos + '%';
+            const baseFontSize = isSmallMobile ? 8 : isMobile ? 12 : 18;
+            const fontSizeVariation = isSmallMobile ? 4 : isMobile ? 5 : 8;
+            element.style.fontSize = (Math.random() * fontSizeVariation + baseFontSize) + 'px';
+            const depthOpacity = Math.max(0.4, 1 - Math.abs(zPos) / (isMobile ? 250 : 400));
+            element.style.opacity = depthOpacity;
+
+            let startTime = null;
+            let startY = -150;
+            let endY = window.innerHeight + 150;
+            const thisParticleSpeed = particleSpeedMultiplier;
+
+            function animateParticle(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = (timestamp - startTime) / (animationDuration * 1000 * thisParticleSpeed);
+
+                if (progress < 1) {
+                    const currentY = startY + (endY - startY) * progress;
+                    const opacity = progress < 0.05 ? progress * 20 :
+                                    progress > 0.95 ? (1 - progress) * 20 :
+                                    depthOpacity;
+                    element.style.transform = `translate3d(0, ${currentY}px, ${zPos}px)`;
+                    element.style.opacity = opacity;
+                    requestAnimationFrame(animateParticle);
+                } else {
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                        activeParticles.delete(element);
+                    }
+                }
+            }
+            galaxy.appendChild(element);
+            activeParticles.add(element);
+            requestAnimationFrame(animateParticle);
+        }
+
+        function createStars() {
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const angle = Math.random() * Math.PI * 10;
+                const radius = Math.random() * (isMobile ? 800 : 1500) + (isMobile ? 200 : 300);
+                const spiralHeight = Math.sin(angle) * (isMobile ? 100 : 150);
+                const x = Math.cos(angle) * radius;
+                const y = spiralHeight + (Math.random() - 0.5) * (isMobile ? 1000 : 2000);
+                const z = Math.sin(angle) * radius * 0.5;
+                star.style.left = `calc(50% + ${x}px)`;
+                star.style.top = `calc(50% + ${y}px)`;
+                star.style.transform = `translateZ(${z}px)`;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                const depthBrightness = Math.max(0.1, 1 - Math.abs(z) / (isMobile ? 800 : 1200));
+                star.style.opacity = depthBrightness;
+                galaxy.appendChild(star);
+            }
+        }
+
+        function updateGalaxyTransform() {
+            requestAnimationFrame(() => {
+                galaxy.style.transform = `translate(-50%, -50%) rotateX(${rotationX}deg) rotateY(${rotationY}deg) scale(${scale})`;
+            });
+        }
+
+        function startParticleAnimation() {
+            setInterval(() => {
+                if (galaxyData.images && galaxyData.images.length > 0 && Math.random() < 0.08) {
+                    createImageParticle();
+                } else {
+                    createTextParticle();
+                }
+            }, particleInterval);
+
+            const initialParticles = isMobile ? 20 : 15;
+            for (let i = 0; i < initialParticles; i++) {
+                setTimeout(() => {
+                    if (galaxyData.images && galaxyData.images.length > 0 && Math.random() < 0.08) {
+                        createImageParticle();
+                    } else {
+                        createTextParticle();
+                    }
+                }, i * (particleInterval * 0.6));
+            }
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+                const sensitivity = isMobile ? 0.3 : 0.5;
+                rotationY += deltaX * sensitivity;
+                rotationX -= deltaY * sensitivity;
+                updateGalaxyTransform();
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            }
+        });
+
+        document.addEventListener('mouseup', () => { isDragging = false; });
+
+        let initialDistance = 0;
+        let initialScale = 1;
+
+        document.addEventListener('touchstart', (e) => {
+            // e.preventDefault(); // Đã có ở trên, nhưng nếu để passive: false thì cần
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastMouseX = e.touches[0].clientX;
+                lastMouseY = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialDistance = Math.sqrt(Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2));
+                initialScale = scale;
+            }
+        }, { passive: true }); // Cho phép scroll nếu không phải là hành động chính của app
+
+        document.addEventListener('touchmove', (e) => {
+            // e.preventDefault(); // Đã có ở trên
+            if (e.touches.length === 1 && isDragging) {
+                const deltaX = e.touches[0].clientX - lastMouseX;
+                const deltaY = e.touches[0].clientY - lastMouseY;
+                const sensitivity = 0.3;
+                rotationY += deltaX * sensitivity;
+                rotationX -= deltaY * sensitivity;
+                updateGalaxyTransform();
+                lastMouseX = e.touches[0].clientX;
+                lastMouseY = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.sqrt(Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2));
+                const scaleChange = currentDistance / initialDistance;
+                scale = Math.max(0.5, Math.min(2, initialScale * scaleChange));
+                updateGalaxyTransform();
+            }
+        }, { passive: true }); // Cho phép scroll nếu không phải là hành động chính của app
+
+        document.addEventListener('touchend', (e) => {
+            // e.preventDefault(); // Đã có ở trên
+            isDragging = false;
+        }, { passive: true }); // Cho phép scroll nếu không phải là hành động chính của app
+
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => { location.reload(); }, 100);
+        });
+
+        function createImageParticle() {
+            if (!galaxyData.images || galaxyData.images.length === 0 || activeParticles.size >= maxParticles) return;
+
+            const img = document.createElement('img');
+            img.src = galaxyData.images[Math.floor(Math.random() * galaxyData.images.length)];
+            img.className = 'text-particle image-particle'; 
+            img.style.width = (Math.random() * 40 + 60) + 'px';
+            img.style.height = 'auto';
+            img.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)';
+            img.style.background = '#fff'; 
+
+            const xPos = Math.random() * 100;
+            const zPos = (Math.random() - 0.5) * (isMobile ? 300 : 500);
+            const animationDuration = Math.random() * 2 + (isMobile ? 3 : 3);
+
+            img.style.left = xPos + '%';
+
+            let startTime = null;
+            let startY = -150;
+            let endY = window.innerHeight + 150;
+            const thisParticleSpeed = particleSpeedMultiplier;
+
+            function animateParticle(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = (timestamp - startTime) / (animationDuration * 1000 * thisParticleSpeed);
+
+                if (progress < 1) {
+                    const currentY = startY + (endY - startY) * progress;
+                    const opacity = progress < 0.05 ? progress * 20 :
+                                    progress > 0.95 ? (1 - progress) * 20 :
+                                    1;
+                    img.style.transform = `translate3d(0, ${currentY}px, ${zPos}px)`;
+                    img.style.opacity = opacity;
+                    requestAnimationFrame(animateParticle);
+                } else {
+                    if (img.parentNode) {
+                        img.parentNode.removeChild(img);
+                        activeParticles.delete(img);
+                    }
+                }
+            }
+            galaxy.appendChild(img);
+            activeParticles.add(img);
+            requestAnimationFrame(animateParticle);
+        }
+
+        // Initialize
+        loadGalaxyData();
+        
+    </script>
+    <footer id="copyrightFooter" class="mobile-copyright"
+        style="position:fixed;bottom:10px;right:10px;z-index:999;color:#fff;font-size:13px;opacity:0.7;font-family:'Orbitron',sans-serif;">
+    
+        <a href="https://dmh.id.vn/" target="_blank" style="color:#fff;text-decoration:underline;pointer-events:auto;font-weight:bold;">
+        
+        </a> 
+    </footer>
+</body>
+</html>
