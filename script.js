@@ -4,7 +4,7 @@ let userName = '';
 
 // ----- CÓ THỂ TÙY CHỈNH Ở ĐÂY -----
 const thoiGianChoGiay = 6; // Số giây đếm ngược (ví dụ: 7 giây)
-const trangWebChuyenHuong = "C:/Users/hi-hieu/iiooi/index.html"; // Đường dẫn web muốn chuyển đến (ví dụ vui)
+const trangWebChuyenHuong = "https://vuuu8886.github.io/jau/"; // Đường dẫn web muốn chuyển đến (ví dụ vui)
 // ----- KẾT THÚC PHẦN TÙY CHỈNH -----
 
 function startApp() {
